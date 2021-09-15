@@ -3,6 +3,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 
 from rec import dataset
+import pickle
 
 
 def progress(prefix, percent, width=50):
@@ -20,9 +21,10 @@ def progress(prefix, percent, width=50):
 
 
 class RecModel(nn.Module):
-    def __init__(self, member_embed_dict, product_embed_dict, embed_dim=32, fc_size=200):
+    def __init__(self, member_embed_dict, product_embed_dict, data=None, embed_dim=32, fc_size=200):
         super().__init__()
-        self.dataset = None
+        if data is not None:
+            self.dataset = dataset.RecDataset(data)
         self.embedding_member_id = nn.Embedding(member_embed_dict["member_id"], embed_dim)
         self.embedding_member_gender = nn.Embedding(member_embed_dict["member_gender"], embed_dim // 2)
         self.embedding_member_age = nn.Embedding(member_embed_dict["member_age"], embed_dim // 2)
@@ -115,7 +117,7 @@ class RecModel(nn.Module):
         return output, feature_member, feature_product
 
     def fit(self, data):
-        self.dataset = dataset.RecDataset(self.data)
+        self.dataset = dataset.RecDataset(data)
 
     def train(self, epochs=5, lr=0.0001, mode=True):
         optimizer = optim.Adam(params=self.parameters(), lr=lr)
@@ -142,10 +144,10 @@ class RecModel(nn.Module):
                 progress(prefix, percent)
             print()
 
-    def save(self, save_file="param/model_params.pkl"):
+    def save(self, save_file="param/model.pkl"):
         torch.save(self.state_dict(), save_file)
 
-    def load(self, load_file="param/model_params.pkl"):
+    def load(self, load_file="param/model.pkl"):
         self.load_state_dict(torch.load(load_file))
 
     def save_feature(self):
@@ -155,7 +157,61 @@ class RecModel(nn.Module):
         member = {}
         product = {}
         with torch.no_grad():
-            for i, batch in enumerate(dataloader):
+            for idx, batch in enumerate(dataloader):
                 member_inputs = batch["member_inputs"]
                 product_inputs = batch["product_inputs"]
 
+                _, feature_member, feature_product = self.__call__(member_inputs, product_inputs)
+                # feature_member = feature_member.tolist()
+                # feature_product = feature_product.tolist()
+
+                feature_member = feature_member.numpy()
+                feature_product = feature_product.numpy()
+
+                for i in range(member_inputs["member_id"].shape[0]):
+                    member_id = member_inputs["member_id"][i]
+                    member_gender = member_inputs["member_gender"][i]
+                    member_age = member_inputs["member_age"][i]
+                    member_skin = member_inputs["member_skin"][i]
+
+                    product_id = product_inputs["product_id"][i]
+                    product_name = product_inputs["product_name"][i]
+                    product_member_price = product_inputs["product_member_price"][i]
+                    product_category_1st = product_inputs["product_category_1st"][i]
+                    product_category_2nd = product_inputs["product_category_2nd"][i]
+                    product_apply_age = product_inputs["product_apply_age"][i]
+                    product_apply_part = product_inputs["product_apply_part"][i]
+                    product_apply_skin = product_inputs["product_apply_skin"][i]
+
+                    if member_id not in member.keys():
+                        member[member_id.item()] = {
+                            "member_id": member_id,
+                            "member_gender": member_gender,
+                            "member_age": member_age,
+                            "member_skin": member_skin
+                        }
+                    if product_id not in product.keys():
+                        product[product_id.item()] = {
+                            "product_id": product_id,
+                            "product_name": product_name,
+                            "product_member_price": product_member_price,
+                            "product_category_1st": product_category_1st,
+                            "product_category_2nd": product_category_2nd,
+                            "product_apply_age": product_apply_age,
+                            "product_apply_part": product_apply_part,
+                            "product_apply_skin": product_apply_skin
+                        }
+
+                    if member_id not in member_feature.keys():
+                        member_feature[member_id.item()] = feature_member[i]
+                    if product_id not in product_feature.keys():
+                        product_feature[product_id.item()] = feature_product[i]
+
+                print(f'[{idx:4}/{len(dataloader)}] Solved: {(idx + 1) * 256:} samples')
+
+        feature = {"member_feature": member_feature, "product_feature": product_feature}
+        data = {"member": member, "product": product}
+
+        pickle.dump(feature, open("param/feature.pkl", "wb"))
+
+        pickle.dump(data, open("param/data.pkl", "wb"))
