@@ -1,6 +1,6 @@
 # user
-; data/*
-; param/*
+data/*
+param/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
