@@ -1,13 +1,8 @@
-from rec import dataset
-from rec import interface
 from rec import model
 from rec import preprocess
-from torch import nn
-from torch import optim
-from torch.utils.data import DataLoader
+from rec import interface
 import pickle
-import tqdm
-import torch
+from rec.env import project_dir
 
 
 def progress(prefix, percent, width=50):
@@ -24,24 +19,41 @@ def progress(prefix, percent, width=50):
     print(f'\r{prefix} {show_str} {percent:<5}%', end='')
 
 
+def save_recommend_result():
+    rec_interface = interface.RecInterface()
+    # rec_interface.p2p()
+    # rec_interface.m2p()
+    rec_interface.m2m2p()
+
+
 def main():
     # 加载数据集
     # data, member_embed_dict, product_embed_dict = preprocess.load_data()
 
     # 模型
-    # rec_model = model.RecModel(member_embed_dict, product_embed_dict, data=data)
+    # rec_model = model.RecModel(member_embed_dict, product_embed_dict)
     # rec_model.fit(data)
     # rec_model.train()
-    # torch.save(rec_model.state_dict(), "param/model.pkl")
+    # rec_model.save_model()
 
-    # rec_model.load()
+    # rec_model.load_model()
     # rec_model.save_feature()
 
     # 测试
-    print(interface.getKnnItem(2, k=10))
-    print(interface.getKnnItem(item_id=2, item_name="member", k=10))
-    print(interface.getMemberMostLike(2, k=10))
+    # print(interface.getKnnItem(2, k=10))
+    # print(interface.getKnnItem(item_id=2, item_name="member", k=10))
+    # print(interface.getMemberMostLike(2, k=10))
+
+    save_recommend_result()
+
+    
+
+
+def test():
+    feature = pickle.load(open(f"{project_dir}/param/feature.pkl", "rb"))
+    print(feature)
 
 
 if __name__ == '__main__':
     main()
+    # test()

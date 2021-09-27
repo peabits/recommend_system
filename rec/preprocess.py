@@ -1,13 +1,21 @@
-import os
-import numpy as np
-import pandas as pd
 from datetime import datetime
+
+import pandas as pd
+from sortedcontainers import SortedSet
+
 from rec.env import project_dir
-from rec.util import Print
+import pickle
+
+
+def save_id_map(series, name):
+    _set = SortedSet(series)
+    ix2id = {x: y for x, y in enumerate(_set)}
+    id2ix = {y: x for x, y in enumerate(_set)}
+    pickle.dump({"ix2id": ix2id, "id2ix": id2ix}, open(f"{project_dir}/param/{name}.pkl", mode="wb"))
 
 
 def label_encode(_df):
-    _set = set(_df)
+    _set = SortedSet(_df)
     df_map = {y: x for x, y in enumerate(_set)}
     return _df.map(df_map), len(_set)
 
@@ -71,6 +79,7 @@ def encode_apply_skin(skin):
 
 
 def encode_member(member, member_embed_dict):
+    save_id_map(member["member_id"], "member_id")
     member["member_id"], member_embed_dict["member_id"] = encode_id(member["member_id"])
     member["member_gender"], member_embed_dict["member_gender"] = encode_gender(member["member_gender"])
     member["member_age"], member_embed_dict["member_age"] = encode_age(member["member_age"])
@@ -79,6 +88,7 @@ def encode_member(member, member_embed_dict):
 
 
 def encode_product(product, product_embed_dict):
+    save_id_map(product["product_id"], "product_id")
     product["product_id"], product_embed_dict["product_id"] = \
         encode_id(product["product_id"])
     product["product_name"], product_embed_dict["product_name"] = \
@@ -163,5 +173,4 @@ def load_data():
 
 
 if __name__ == '__main__':
-    a, b, c = load_data()
-    print(a.iloc[0, :])
+    load_data()
