@@ -23,7 +23,9 @@ def save_recommend_result():
     rec_interface = interface.RecInterface()
     # rec_interface.p2p()
     # rec_interface.m2p()
-    rec_interface.m2m2p()
+    # rec_interface.m2m2p()
+    # rec_interface.m2m()
+    rec_interface.m2p2p()
 
 
 def main():
@@ -45,8 +47,6 @@ def main():
     # print(interface.getMemberMostLike(2, k=10))
 
     save_recommend_result()
-
-    
 
 
 def test():

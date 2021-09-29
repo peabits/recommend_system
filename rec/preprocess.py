@@ -7,11 +7,10 @@ from rec.env import project_dir
 import pickle
 
 
-def save_id_map(series, name):
+def get_id_map(series):
     _set = SortedSet(series)
     ix2id = {x: y for x, y in enumerate(_set)}
-    id2ix = {y: x for x, y in enumerate(_set)}
-    pickle.dump({"ix2id": ix2id, "id2ix": id2ix}, open(f"{project_dir}/param/{name}.pkl", mode="wb"))
+    return ix2id
 
 
 def label_encode(_df):
@@ -79,16 +78,16 @@ def encode_apply_skin(skin):
 
 
 def encode_member(member, member_embed_dict):
-    save_id_map(member["member_id"], "member_id")
+    member_ix2id =  get_id_map(member["member_id"])
     member["member_id"], member_embed_dict["member_id"] = encode_id(member["member_id"])
     member["member_gender"], member_embed_dict["member_gender"] = encode_gender(member["member_gender"])
     member["member_age"], member_embed_dict["member_age"] = encode_age(member["member_age"])
     member["member_skin"], member_embed_dict["member_skin"] = encode_skin(member["member_skin"])
-    return member
+    return member, member_ix2id
 
 
 def encode_product(product, product_embed_dict):
-    save_id_map(product["product_id"], "product_id")
+    product_ix2id =  get_id_map(product["product_id"])
     product["product_id"], product_embed_dict["product_id"] = \
         encode_id(product["product_id"])
     product["product_name"], product_embed_dict["product_name"] = \
@@ -105,7 +104,7 @@ def encode_product(product, product_embed_dict):
         encode_apply_part(product["product_apply_part"])
     product["product_apply_skin"], product_embed_dict["product_apply_skin"] = \
         encode_apply_skin(product["product_apply_skin"])
-    return product
+    return product, product_ix2id
 
 
 def encode_record(record):
@@ -122,8 +121,8 @@ def get_member(member_filepath):
                             encoding="utf-8")
     df_member = df_member[["member_id", "member_gender", "member_age", "member_skin"]]
     member_embed_dict = {}
-    df_member = encode_member(df_member, member_embed_dict)
-    return df_member, member_embed_dict
+    df_member, member_ix2id = encode_member(df_member, member_embed_dict)
+    return df_member, member_embed_dict, member_ix2id
 
 
 def get_product(product_filepath):
@@ -140,8 +139,8 @@ def get_product(product_filepath):
                              "product_category_1st", "product_category_2nd",
                              "product_apply_age", "product_apply_part", "product_apply_skin"]]
     product_embed_dict = {}
-    df_product = encode_product(df_product, product_embed_dict)
-    return df_product, product_embed_dict
+    df_product, product_ix2id = encode_product(df_product, product_embed_dict)
+    return df_product, product_embed_dict, product_ix2id
 
 
 def get_record(record_filepath):
@@ -159,8 +158,8 @@ def load_data():
     member_filepath = f"{project_dir}/data/bj_member.csv"
     product_filepath = f"{project_dir}/data/complete_prd.csv"
     record_filepath = f"{project_dir}/data/bj_member_rate.csv"
-    df_member, member_embed_dict = get_member(member_filepath)
-    df_product, product_embed_dict = get_product(product_filepath)
+    df_member, member_embed_dict, member_ix2id = get_member(member_filepath)
+    df_product, product_embed_dict, product_ix2id = get_product(product_filepath)
     df_record = get_record(record_filepath)
     data = pd.merge(pd.merge(df_record, df_member), df_product)
     data = data[["member_id", "member_gender", "member_age", "member_skin",
@@ -169,6 +168,7 @@ def load_data():
                  "product_apply_age", "product_apply_part", "product_apply_skin",
                  # "amount_norm",
                  "quantity_norm"]]
+    pickle.dump({"member_ix2id": member_ix2id, "product_ix2id": product_ix2id}, open(f"{project_dir}/param/ix2id.pkl", "wb"))
     return data, member_embed_dict, product_embed_dict
 
 
